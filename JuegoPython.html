@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Navideño</title>
+    <style>
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        canvas {
+            background-color: #e0e0e0;
+            border: 2px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Variables del jugador
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height - 120,
+            width: 50,
+            height: 50,
+            speed: 5,
+            dx: 0
+        };
+
+        // Variables de los regalos y elementos dañinos
+        let gifts = [];
+        let harmfulItems = [];
+        let giftSpeed = 2;
+        let harmfulSpeed = 4;
+
+        // Puntuación y vidas
+        let score = 0;
+        let lives = 3;
+        let record = 278; // Puntaje record
+
+        // Teclas de control
+        let keys = {
+            left: false,
+            right: false
+        };
+
+        // Función para dibujar el jugador
+        function drawPlayer() {
+            ctx.fillStyle = '#00f';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        // Función para dibujar los regalos
+        function drawGifts() {
+            ctx.fillStyle = '#ff0';
+            gifts.forEach(gift => {
+                ctx.fillRect(gift.x, gift.y, 50, 50);
+            });
+        }
+
+        // Función para dibujar los elementos dañinos
+        function drawHarmfulItems() {
+            ctx.fillStyle = '#f00';
+            harmfulItems.forEach(item => {
+                ctx.fillRect(item.x, item.y, 50, 50);
+            });
+        }
+
+        // Función para manejar el movimiento del jugador
+        function movePlayer() {
+            if (keys.left && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys.right && player.x < canvas.width - player.width) {
+                player.x += player.speed;
+            }
+        }
+
+        // Función para spawnear regalos
+        function spawnGifts() {
+            if (Math.random() < 0.02) { // Probabilidad de generar un regalo
+                let giftX = Math.random() * (canvas.width - 50);
+                gifts.push({ x: giftX, y: 0 });
+            }
+        }
+
+        // Función para mover los regalos
+        function moveGifts() {
+            gifts.forEach((gift, index) => {
+                gift.y += giftSpeed;
+                if (gift.y > canvas.height) {
+                    gifts.splice(index, 1); // Eliminar regalos fuera de la pantalla
+                }
+                // Detectar colisión con el jugador
+                if (gift.x < player.x + player.width && gift.x + 50 > player.x && gift.y < player.y + player.height && gift.y + 50 > player.y) {
+                    score += 10;
+                    gifts.splice(index, 1); // Eliminar regalo al atraparlo
+                }
+            });
+        }
+
+        // Función para spawnear elementos dañinos
+        function spawnHarmfulItems() {
+            if (Math.random() < 0.01) { // Probabilidad de generar un elemento dañino
+                let harmfulX = Math.random() * (canvas.width - 50);
+                harmfulItems.push({ x: harmfulX, y: 0 });
+            }
+        }
+
+        // Función para mover los elementos dañinos
+        function moveHarmfulItems() {
+            harmfulItems.forEach((item, index) => {
+                item.y += harmfulSpeed;
+                if (item.y > canvas.height) {
+                    harmfulItems.splice(index, 1); // Eliminar elementos fuera de la pantalla
+                }
+                // Detectar colisión con el jugador
+                if (item.x < player.x + player.width && item.x + 50 > player.x && item.y < player.y + player.height && item.y + 50 > player.y) {
+                    lives -= 1;
+                    harmfulItems.splice(index, 1); // Eliminar elemento dañino al tocarlo
+                    if (lives <= 0) {
+                        gameOver(); // Fin del juego si las vidas llegan a 0
+                    }
+                }
+            });
+        }
+
+        // Función para mostrar el puntaje y las vidas
+        function drawScore() {
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText(`Puntaje: ${score}`, 10, 30);
+            ctx.fillText(`Vidas: ${lives}`, 10, 60);
+            ctx.fillText(`Record: ${record}`, canvas.width - 150, 30);
+        }
+
+        // Función para mostrar el mensaje de fin de juego
+        function gameOver() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#f00';
+            ctx.fillText('¡Game Over!', canvas.width / 2 - 90, canvas.height / 2);
+            ctx.fillText(`Puntaje Final: ${score}`, canvas.width / 2 - 130, canvas.height / 2 + 40);
+        }
+
+        // Función para manejar la animación
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar la pantalla
+            movePlayer();
+            spawnGifts();
+            moveGifts();
+            spawnHarmfulItems();
+            moveHarmfulItems();
+            drawPlayer();
+            drawGifts();
+            drawHarmfulItems();
+            drawScore();
+            requestAnimationFrame(update); // Llamada recursiva para crear el bucle de animación
+        }
+
+        // Función para manejar las teclas presionadas
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+        });
+
+        // Iniciar el juego
+        startScreen();
+
+        // Pantalla de inicio
+        function startScreen() {
+            let email = prompt("Ingresa tu correo:");
+
+            if (validEmails.includes(email)) {
+                if (email === "vmantilla@estud.usfq.edu.ec") {
+                    specialScreen(); // Si el correo es especial
+                } else {
+                    update(); // Iniciar el juego normalmente
+                }
+            } else {
+                alert("Correo no válido. Intenta de nuevo.");
+                startScreen(); // Volver a solicitar el correo
+            }
+        }
+
+        // Pantalla especial para el correo "vmantilla@estud.usfq.edu.ec"
+        function specialScreen() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = '#008000';
+            ctx.fillText("¡Feliz Navidad!", canvas.width / 2 - 100, canvas.height / 3);
+            ctx.fillText("Código del Gift Card: AXMP-LS78K2-39AR", canvas.width / 2 - 200, canvas.height / 2);
+            ctx.fillText("Presiona ESC para salir", canvas.width / 2 - 150, canvas.height / 1.5);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    window.location.reload(); // Recargar la página para reiniciar
+                }
+            });
+        }
+
+        // Lista de correos permitidos
+        const validEmails = [
+            "aialvarezm@estud.usfq.edu.ec",
+            "kandradeh@estud.usfq.edu.ec",
+            "jbarrigam@estud.usfq.edu.ec",
+            "dcancan-proceso@estud.usfq.edu.ec",
+            "mcarrascot@estud.usfq.edu.ec",
+            "sjendara@estud.usfq.edu.ec",
+            "dsgavilanesr@estud.usfq.edu.ec",
+            "jgrandesd@estud.usfq.edu.ec",
+            "nherediah@estud.usfq.edu.ec",
+            "dajimenezv@estud.usfq.edu.ec",
+            "flopez@estud.usfq.edu.ec",
+            "vmantilla@estud.usfq.edu.ec",  // Correo especial
+            "mmogollon@estud.usfq.edu.ec",
+            "smontero@estud.usfq.edu.ec",
+            "jnajera@asig.com.ec",
+            "jpatino@estud.usfq.edu.ec",
+            "fpazmino@estud.usfq.edu.ec",
+            "cpenaherrera@estud.usfq.edu.ec",
+            "dpilcog@estud.usfq.edu.ec",
+            "jrestrepoj@estud.usfq.edu.ec",
+            "msalgado@estud.usfq.edu.ec",
+            "mtoro@estud.usfq.edu.ec",
+            "dayepezc@estud.usfq.edu.ec",
+            "jxyepezr@estud.usfq.edu.ec"
+        ];
+    </script>
+</body>
+</html>
